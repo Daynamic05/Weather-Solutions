@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Farmers Weather Assistant</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+    }
+    header {
+      background-color: #4caf50;
+      color: white;
+      padding: 10px 20px;
+      text-align: center;
+    }
+    nav {
+      background-color: #45a049;
+      display: flex;
+      justify-content: center;
+      padding: 10px 0;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin: 0 15px;
+      font-weight: bold;
+    }
+    main {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    footer {
+      background-color: #4caf50;
+      color: white;
+      text-align: center;
+      padding: 10px 0;
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+    }
+    .section-title {
+      font-size: 1.5rem;
+      margin-bottom: 10px;
+    }
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Farmers Weather Assistant</h1>
+  </header>
+  <nav>
+    <a href="#forecast">Weather Forecast</a>
+    <a href="#alerts">Alerts</a>
+  </nav>
+  <main>
+    <section id="forecast">
+      <h2 class="section-title">Weather Forecast</h2>
+      <input type="text" id="city" placeholder="Enter city name">
+      <button onclick="fetchWeather()">Fetch Weather</button>
+      <input type="text" id="phone" placeholder="Enter your phone number">
+      <button onclick="sendWeatherAlert()">Send SMS Alert</button>
+      <p id="weather-data">Enter a city name to get the forecast.</p>
+    </section>
+    <hr>
+    <section id="alerts">
+      <h2 class="section-title">Alerts</h2>
+      <p id="alert-data"><strong>No alerts yet.</strong></p>
+    </section>
+  </main>
+  <footer>
+    &copy; 2024 Farmers Weather Assistant
+  </footer>
+  <script>
+    const apiKey = "07017d2ec5cce857d5710a97cdcb5894"; // Your OpenWeather API key
+    const baseURL = "https://api.openweathermap.org/data/2.5/weather";
+  
+    // Fetch Weather Data
+    async function fetchWeather() {
+      const city = document.getElementById("city").value.trim();
+      const weatherElement = document.getElementById("weather-data");
+      weatherElement.innerHTML = "Loading...";
+  
+      if (!city) {
+        alert("Please enter a city name.");
+        weatherElement.innerHTML = "Enter a valid city name to fetch weather.";
+        return;
+      }
+  
+      const apiURL = `${baseURL}?q=${city}&appid=${apiKey}&units=metric`;
+  
+      try {
+        const response = await fetch(apiURL);
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status} - ${response.statusText}`);
+        }
+        const data = await response.json();
+        displayWeather(data);
+      } catch (error) {
+        console.error(error.message);
+        weatherElement.innerHTML = `<span class="error">Failed to fetch weather data. Please try again.</span>`;
+      }
+    }
+  
+    // Display Weather Data on page
+    function displayWeather(data) {
+      const weatherElement = document.getElementById("weather-data");
+      weatherElement.innerHTML = `
+        <strong>Location:</strong> ${data.name} <br>
+        <strong>Temperature:</strong> ${data.main.temp} °C <br>
+        <strong>Condition:</strong> ${data.weather[0].description}
+      `;
+    }
+  
+    // Send SMS Alert and Update Alert Section
+    async function sendWeatherAlert() {
+      const city = document.getElementById("city").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const alertElement = document.getElementById("alert-data");
+  
+      if (!city || !phone) {
+        alert("Please enter both city name and phone number.");
+        return;
+      }
+  
+      const apiURL = `${baseURL}?q=${city}&appid=${apiKey}&units=metric`;
+  
+      try {
+        const response = await fetch(apiURL);
+        if (!response.ok) {
+          throw new Error("Unable to fetch weather data.");
+        }
+  
+        const weather = await response.json();
+  
+        const weatherMessage = `Weather Alert for ${city}: Temperature is ${weather.main.temp}°C, Condition: ${weather.weather[0].description}.`;
+  
+        // Update the alert section on the page with the new alert message
+        alertElement.innerHTML = `<strong>Alert:</strong> ${weatherMessage}`;
+  
+        // Send SMS via backend (replace the backend URL with the actual one)
+        const smsResponse = await fetch("http://localhost:3000/send-sms", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            phone: phone,
+            message: weatherMessage,
+          }),
+        });
+  
+        if (smsResponse.ok) {
+          alert("SMS Alert sent successfully!");
+        } else {
+          alert("Failed to send SMS.");
+        }
+      } catch (error) {
+        console.error(error.message);
+        alertElement.innerHTML = `<span class="error">Failed to send alert. Try again later.</span>`;
+      }
+    }
+  
+    // Preload weather for a default city on page load
+    window.onload = () => {
+      document.getElementById("weather-data").innerHTML = "Enter a city name to get the forecast.";
+    };
+  </script>
+</body>
+</html>
+
+
